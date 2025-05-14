@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Mã hóa & Giải mã File - AES</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-xl">
+    <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">🔐 Mã hóa & Giải mã File bằng AES</h2>
+
+    <label class="block mb-2 font-medium">📄 Chọn file:</label>
+    <input type="file" id="fileInput" class="mb-4 w-full p-2 border rounded" />
+
+    <label class="block mb-2 font-medium">🔑 Nhập khóa bảo mật:</label>
+    <input type="password" id="keyInput" placeholder="Nhập khóa AES..." class="mb-4 w-full p-2 border rounded" />
+
+    <div class="flex justify-between space-x-4 mb-6">
+      <button onclick="encryptFile()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        Mã hóa & Tải xuống
+      </button>
+      <button onclick="decryptFile()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+        Giải mã & Tải xuống
+      </button>
+    </div>
+
+    <div id="previewSection" class="bg-gray-100 p-4 rounded h-48 overflow-auto text-sm text-gray-700 border">
+      <p class="italic text-gray-500">📑 Nội dung xem trước sẽ hiển thị ở đây sau khi tải file...</p>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const keyInput = document.getElementById("keyInput");
+    const previewSection = document.getElementById("previewSection");
+
+    function readFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+
+    async function encryptFile() {
+      const file = fileInput.files[0];
+      const key = keyInput.value;
+      if (!file || !key) return alert("❗ Vui lòng chọn file và nhập khóa.");
+
+      const content = await readFile(file);
+      const encrypted = CryptoJS.AES.encrypt(content, key).toString();
+      downloadFile(encrypted, file.name + ".enc");
+      previewSection.textContent = encrypted;
+    }
+
+    async function decryptFile() {
+      const file = fileInput.files[0];
+      const key = keyInput.value;
+      if (!file || !key) return alert("❗ Vui lòng chọn file và nhập khóa.");
+
+      const content = await readFile(file);
+      try {
+        const decrypted = CryptoJS.AES.decrypt(content, key).toString(CryptoJS.enc.Utf8);
+        if (!decrypted) throw new Error("Sai khóa hoặc nội dung không hợp lệ.");
+        downloadFile(decrypted, file.name.replace(".enc", ".dec.txt"));
+        previewSection.textContent = decrypted;
+      } catch (e) {
+        alert("❌ Giải mã thất bại: " + e.message);
+        previewSection.textContent = "⚠️ Không thể giải mã nội dung.";
+      }
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (file) {
+        const content = await readFile(file);
+        previewSection.textContent = content.slice(0, 1000) || "📁 Nội dung rỗng hoặc quá lớn để hiển thị.";
+      }
+    });
+  </script>
+</body>
+</html>
